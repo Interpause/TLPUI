@@ -1,9 +1,10 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=TLP UI
 Path=/home/jh/Applications/TLPUI
 Exec=/usr/bin/python -m tlpui
 Terminal=false
 Type=Application
-Icon=/home/jh/Applications/TLPUI/tlpui/icons/themeable/hicolor/scalable/apps/tlpui.svg
+Icon=/home/jh/Applications/TLPUI/tlpui/icons/themeable/hicolor/256x256/apps/tlpui.png
 Comment=TLP Configuration interface
 Categories=Settings;HardwareSettings;GTK;
