@@ -4,8 +4,17 @@ import configparser
 import re
 import sys
 from os import getenv
-from subprocess import check_output
+from shutil import which
+from subprocess import check_output, CalledProcessError
 from pathlib import Path
+from . import errorui
+
+
+def exec_command(commands: [str]):
+    try:
+        return check_output(commands).decode(sys.stdout.encoding)
+    except CalledProcessError as error:
+        errorui.show_dialog(error)
 
 
 def get_tlp_config_file(version: str, prefix: str) -> str:
@@ -15,10 +24,25 @@ def get_tlp_config_file(version: str, prefix: str) -> str:
     return f"{prefix}/etc/tlp.conf"
 
 
+def check_binaries_exist(flatpak_folder_prefix: str) -> None:
+    """Check if required binaries are installed on system."""
+    for expected_command in ["tlp", "tlp-stat", "lspci", "lsusb"]:
+        if flatpak_folder_prefix != "":
+            command_exists = Path(f"{flatpak_folder_prefix}/usr/bin/{expected_command}").exists()
+            if not command_exists:
+                command_exists = Path(f"{flatpak_folder_prefix}/usr/sbin/{expected_command}").exists()
+        else:
+            command_exists = which(expected_command) is not None
+
+        if not command_exists:
+            errorui.show_dialog(f"{expected_command} not found on system. Please install first.")
+            sys.exit(1)
+
+
 def get_installed_tlp_version() -> str:
     """Fetch tlp version from command."""
     pattern = re.compile(r"TLP ([^\s]+)")
-    currentconfig = check_output(["tlp-stat", "-c"]).decode(sys.stdout.encoding)
+    currentconfig = exec_command(["tlp-stat", "-c"])
     matcher = pattern.search(currentconfig)
     version = matcher.group(1).replace(".", "_")
     return version
@@ -47,6 +71,7 @@ class UserConfig:
         self.language = "en_EN"
         self.activeoption = 0
         self.activecategory = 0
+        self.activeposition = 0
         self.windowxsize = 900
         self.windowysize = 600
         self.userconfigfile = get_user_config_file()
@@ -62,6 +87,7 @@ class UserConfig:
                 self.language = config['default']['language']
                 self.activeoption = int(config['default']['activeoption'])
                 self.activecategory = int(config['default']['activecategory'])
+                self.activeposition = float(config['default']['activeposition'])
                 self.windowxsize = int(config['default']['windowxsize'])
                 self.windowysize = int(config['default']['windowysize'])
             except KeyError:
@@ -78,6 +104,7 @@ class UserConfig:
         config['default']['language'] = self.language
         config['default']['activeoption'] = str(self.activeoption)
         config['default']['activecategory'] = str(self.activecategory)
+        config['default']['activeposition'] = str(self.activeposition)
         config['default']['windowxsize'] = str(self.windowxsize)
         config['default']['windowysize'] = str(self.windowysize)
         with open(str(self.userconfigfile), 'w') as configfile:
